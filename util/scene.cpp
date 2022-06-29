@@ -1,3 +1,4 @@
+//{{{  includes
 #include "scene.h"
 #include <algorithm>
 #include <iostream>
@@ -17,36 +18,42 @@
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+//}}}
 
 namespace std {
-template <>
-struct hash<glm::uvec2> {
-    size_t operator()(glm::uvec2 const &v) const
-    {
-        return phmap::HashState().combine(0, v.x, v.y);
-    }
-};
+  //{{{
+  template <> struct hash<glm::uvec2> {
+      size_t operator()(glm::uvec2 const &v) const
+      {
+          return phmap::HashState().combine(0, v.x, v.y);
+      }
+  };
+  //}}}
+  //{{{
+  bool operator==(const glm::uvec2 &a, const glm::uvec2 &b)
+  {
+      return a.x == b.x && a.y == b.y;
+  }
+  //}}}
+  //{{{
+  template <> struct hash<glm::uvec3> {
+      size_t operator()(glm::uvec3 const &v) const
+      {
+          return phmap::HashState().combine(0, v.x, v.y, v.z);
+      }
+  };
+  //}}}
+  }
 
-bool operator==(const glm::uvec2 &a, const glm::uvec2 &b)
-{
-    return a.x == b.x && a.y == b.y;
-}
-
-template <>
-struct hash<glm::uvec3> {
-    size_t operator()(glm::uvec3 const &v) const
-    {
-        return phmap::HashState().combine(0, v.x, v.y, v.z);
-    }
-};
-}
-
-bool operator==(const glm::uvec3 &a, const glm::uvec3 &b)
+//{{{
+bool operator == (const glm::uvec3 &a, const glm::uvec3 &b)
 {
     return a.x == b.x && a.y == b.y && a.z == b.z;
 }
+//}}}
 
-Scene::Scene(const std::string &fname)
+//{{{
+Scene::Scene (const std::string &fname)
 {
     const std::string ext = get_file_extension(fname);
     if (ext == "obj") {
@@ -64,7 +71,9 @@ Scene::Scene(const std::string &fname)
         throw std::runtime_error("Unsupported file type " + ext);
     }
 }
+//}}}
 
+//{{{
 size_t Scene::unique_tris() const
 {
     return std::accumulate(
@@ -72,7 +81,8 @@ size_t Scene::unique_tris() const
             return n + m.num_tris();
         });
 }
-
+//}}}
+//{{{
 size_t Scene::total_tris() const
 {
     return std::accumulate(
@@ -81,7 +91,8 @@ size_t Scene::total_tris() const
                    meshes[parameterized_meshes[i.parameterized_mesh_id].mesh_id].num_tris();
         });
 }
-
+//}}}
+//{{{
 size_t Scene::num_geometries() const
 {
     return std::accumulate(
@@ -89,8 +100,10 @@ size_t Scene::num_geometries() const
             return n + m.geometries.size();
         });
 }
+//}}}
 
-void Scene::load_obj(const std::string &file)
+//{{{
+void Scene::load_obj (const std::string &file)
 {
     std::cout << "Loading OBJ: " << file << "\n";
 
@@ -219,8 +232,9 @@ void Scene::load_obj(const std::string &file)
     light.height = 5.f;
     lights.push_back(light);
 }
-
-void Scene::load_gltf(const std::string &fname)
+//}}}
+//{{{
+void Scene::load_gltf (const std::string &fname)
 {
     std::cout << "Loading GLTF " << fname << "\n";
 
@@ -399,8 +413,9 @@ void Scene::load_gltf(const std::string &fname)
     light.height = 5.f;
     lights.push_back(light);
 }
-
-void Scene::load_crts(const std::string &file)
+//}}}
+//{{{
+void Scene::load_crts (const std::string &file)
 {
     using json = nlohmann::json;
     std::cout << "Loading CRTS " << file << "\n";
@@ -603,316 +618,318 @@ void Scene::load_crts(const std::string &file)
         lights.push_back(light);
     }
 }
+//}}}
 
 #ifdef PBRT_PARSER_ENABLED
+  //{{{
+  void Scene::load_pbrt (const std::string &file)
+  {
+      std::shared_ptr<pbrt::Scene> scene = nullptr;
+      try {
+          if (get_file_extension(file) == "pbrt") {
+              scene = pbrt::importPBRT(file);
+          } else {
+              scene = pbrt::Scene::loadFrom(file);
+          }
 
-void Scene::load_pbrt(const std::string &file)
-{
-    std::shared_ptr<pbrt::Scene> scene = nullptr;
-    try {
-        if (get_file_extension(file) == "pbrt") {
-            scene = pbrt::importPBRT(file);
-        } else {
-            scene = pbrt::Scene::loadFrom(file);
-        }
+          if (!scene) {
+              throw std::runtime_error("Failed to load PBRT scene from " + file);
+          }
 
-        if (!scene) {
-            throw std::runtime_error("Failed to load PBRT scene from " + file);
-        }
+          scene->makeSingleLevel();
+      } catch (const std::runtime_error &e) {
+          std::cout << "Error loading PBRT scene " << file << "\n";
+          throw e;
+      }
 
-        scene->makeSingleLevel();
-    } catch (const std::runtime_error &e) {
-        std::cout << "Error loading PBRT scene " << file << "\n";
-        throw e;
-    }
+      const std::string pbrt_base_dir = file.substr(0, file.rfind('/'));
 
-    const std::string pbrt_base_dir = file.substr(0, file.rfind('/'));
+      // TODO: The world can also have some top-level things we may need to load. But is this
+      // common? Or does Ingo's make single level flatten these down to a shape?
+      for (const auto &obj : scene->world->shapes) {
+          if (obj->material) {
+              std::cout << "Top level Mat: " << obj->material->toString() << "\n";
+          }
 
-    // TODO: The world can also have some top-level things we may need to load. But is this
-    // common? Or does Ingo's make single level flatten these down to a shape?
-    for (const auto &obj : scene->world->shapes) {
-        if (obj->material) {
-            std::cout << "Top level Mat: " << obj->material->toString() << "\n";
-        }
+          // What would these top-level textures be used for?
+          if (!obj->textures.empty()) {
+              std::cout << "top level textures " << obj->textures.size() << "\n";
+              for (const auto &t : obj->textures) {
+                  auto img_tex = std::dynamic_pointer_cast<pbrt::ImageTexture>(t.second);
+                  if (img_tex) {
+                      std::cout << "Image texture: " << t.first << " from file "
+                                << img_tex->fileName << "\n";
+                  } else {
+                      std::cout << "Unsupported non-image texture used by texture '" << t.first
+                                << "'\n";
+                  }
+              }
+          }
 
-        // What would these top-level textures be used for?
-        if (!obj->textures.empty()) {
-            std::cout << "top level textures " << obj->textures.size() << "\n";
-            for (const auto &t : obj->textures) {
-                auto img_tex = std::dynamic_pointer_cast<pbrt::ImageTexture>(t.second);
-                if (img_tex) {
-                    std::cout << "Image texture: " << t.first << " from file "
-                              << img_tex->fileName << "\n";
-                } else {
-                    std::cout << "Unsupported non-image texture used by texture '" << t.first
-                              << "'\n";
-                }
-            }
-        }
+          if (obj->areaLight) {
+              std::cout << "Encountered area light\n";
+          }
 
-        if (obj->areaLight) {
-            std::cout << "Encountered area light\n";
-        }
+          if (pbrt::TriangleMesh::SP mesh = std::dynamic_pointer_cast<pbrt::TriangleMesh>(obj)) {
+              std::cout << "Found root level triangle mesh w/ " << mesh->index.size()
+                        << " triangles: " << mesh->toString() << "\n";
+          } else if (pbrt::QuadMesh::SP mesh = std::dynamic_pointer_cast<pbrt::QuadMesh>(obj)) {
+              std::cout << "Encountered root level quadmesh (unsupported type). Will TODO maybe "
+                           "triangulate\n";
+          } else {
+              std::cout << "un-handled root level geometry type : " << obj->toString()
+                        << std::endl;
+          }
+      }
 
-        if (pbrt::TriangleMesh::SP mesh = std::dynamic_pointer_cast<pbrt::TriangleMesh>(obj)) {
-            std::cout << "Found root level triangle mesh w/ " << mesh->index.size()
-                      << " triangles: " << mesh->toString() << "\n";
-        } else if (pbrt::QuadMesh::SP mesh = std::dynamic_pointer_cast<pbrt::QuadMesh>(obj)) {
-            std::cout << "Encountered root level quadmesh (unsupported type). Will TODO maybe "
-                         "triangulate\n";
-        } else {
-            std::cout << "un-handled root level geometry type : " << obj->toString()
-                      << std::endl;
-        }
-    }
+      // For PBRTv3 Each Mesh corresponds to a PBRT Object, consisting of potentially
+      // multiple Shapes. This maps to a Mesh with multiple geometries, which can then be
+      // instanced
+      phmap::parallel_flat_hash_map<pbrt::Material::SP, size_t> pbrt_materials;
+      phmap::parallel_flat_hash_map<pbrt::Texture::SP, size_t> pbrt_textures;
+      phmap::parallel_flat_hash_map<std::string, size_t> pbrt_objects;
+      for (const auto &inst : scene->world->instances) {
+          // Check if this object has already been loaded for the instance
+          // PBRT geometries are also parameterized with a material, similar to GLTF
+          auto fnd = pbrt_objects.find(inst->object->name);
+          size_t parameterized_mesh_id = -1;
+          if (fnd == pbrt_objects.end()) {
+              std::cout << "Loading newly encountered instanced object " << inst->object->name
+                        << "\n";
 
-    // For PBRTv3 Each Mesh corresponds to a PBRT Object, consisting of potentially
-    // multiple Shapes. This maps to a Mesh with multiple geometries, which can then be
-    // instanced
-    phmap::parallel_flat_hash_map<pbrt::Material::SP, size_t> pbrt_materials;
-    phmap::parallel_flat_hash_map<pbrt::Texture::SP, size_t> pbrt_textures;
-    phmap::parallel_flat_hash_map<std::string, size_t> pbrt_objects;
-    for (const auto &inst : scene->world->instances) {
-        // Check if this object has already been loaded for the instance
-        // PBRT geometries are also parameterized with a material, similar to GLTF
-        auto fnd = pbrt_objects.find(inst->object->name);
-        size_t parameterized_mesh_id = -1;
-        if (fnd == pbrt_objects.end()) {
-            std::cout << "Loading newly encountered instanced object " << inst->object->name
-                      << "\n";
+              std::vector<uint32_t> material_ids;
+              std::vector<Geometry> geometries;
+              for (const auto &g : inst->object->shapes) {
+                  if (pbrt::TriangleMesh::SP mesh =
+                          std::dynamic_pointer_cast<pbrt::TriangleMesh>(g)) {
+                      std::cout << "Object triangle mesh w/ " << mesh->index.size()
+                                << " triangles: " << mesh->toString() << "\n";
 
-            std::vector<uint32_t> material_ids;
-            std::vector<Geometry> geometries;
-            for (const auto &g : inst->object->shapes) {
-                if (pbrt::TriangleMesh::SP mesh =
-                        std::dynamic_pointer_cast<pbrt::TriangleMesh>(g)) {
-                    std::cout << "Object triangle mesh w/ " << mesh->index.size()
-                              << " triangles: " << mesh->toString() << "\n";
+                      uint32_t material_id = -1;
+                      if (mesh->material) {
+                          material_id = load_pbrt_materials(mesh->material,
+                                                            mesh->textures,
+                                                            pbrt_base_dir,
+                                                            pbrt_materials,
+                                                            pbrt_textures);
+                      }
+                      material_ids.push_back(material_id);
 
-                    uint32_t material_id = -1;
-                    if (mesh->material) {
-                        material_id = load_pbrt_materials(mesh->material,
-                                                          mesh->textures,
-                                                          pbrt_base_dir,
-                                                          pbrt_materials,
-                                                          pbrt_textures);
-                    }
-                    material_ids.push_back(material_id);
+                      Geometry geom;
+                      geom.vertices.reserve(mesh->vertex.size());
+                      std::transform(
+                          mesh->vertex.begin(),
+                          mesh->vertex.end(),
+                          std::back_inserter(geom.vertices),
+                          [](const pbrt::vec3f &v) { return glm::vec3(v.x, v.y, v.z); });
 
-                    Geometry geom;
-                    geom.vertices.reserve(mesh->vertex.size());
-                    std::transform(
-                        mesh->vertex.begin(),
-                        mesh->vertex.end(),
-                        std::back_inserter(geom.vertices),
-                        [](const pbrt::vec3f &v) { return glm::vec3(v.x, v.y, v.z); });
+                      geom.indices.reserve(mesh->index.size());
+                      std::transform(
+                          mesh->index.begin(),
+                          mesh->index.end(),
+                          std::back_inserter(geom.indices),
+                          [](const pbrt::vec3i &v) { return glm::ivec3(v.x, v.y, v.z); });
 
-                    geom.indices.reserve(mesh->index.size());
-                    std::transform(
-                        mesh->index.begin(),
-                        mesh->index.end(),
-                        std::back_inserter(geom.indices),
-                        [](const pbrt::vec3i &v) { return glm::ivec3(v.x, v.y, v.z); });
+                      geom.uvs.reserve(mesh->texcoord.size());
+                      std::transform(mesh->texcoord.begin(),
+                                     mesh->texcoord.end(),
+                                     std::back_inserter(geom.uvs),
+                                     [](const pbrt::vec2f &v) { return glm::vec2(v.x, v.y); });
 
-                    geom.uvs.reserve(mesh->texcoord.size());
-                    std::transform(mesh->texcoord.begin(),
-                                   mesh->texcoord.end(),
-                                   std::back_inserter(geom.uvs),
-                                   [](const pbrt::vec2f &v) { return glm::vec2(v.x, v.y); });
+                      geometries.push_back(geom);
+                  } else if (pbrt::QuadMesh::SP mesh =
+                                 std::dynamic_pointer_cast<pbrt::QuadMesh>(g)) {
+                      std::cout << "Encountered instanced quadmesh (unsupported type). Will "
+                                   "TODO maybe triangulate\n";
+                  } else {
+                      std::cout << "un-handled instanced geometry type : " << g->toString()
+                                << std::endl;
+                  }
+              }
+              if (inst->object->instances.size() > 0) {
+                  std::cout
+                      << "Warning: Potentially multilevel instancing is in the scene after "
+                         "flattening?\n";
+              }
+              // Mesh only contains unsupported objects, skip it
+              if (geometries.empty()) {
+                  std::cout << "WARNING: Instance contains only unsupported geometries, "
+                               "skipping\n";
+                  continue;
+              }
+              const size_t mesh_id = meshes.size();
+              meshes.emplace_back(geometries);
 
-                    geometries.push_back(geom);
-                } else if (pbrt::QuadMesh::SP mesh =
-                               std::dynamic_pointer_cast<pbrt::QuadMesh>(g)) {
-                    std::cout << "Encountered instanced quadmesh (unsupported type). Will "
-                                 "TODO maybe triangulate\n";
-                } else {
-                    std::cout << "un-handled instanced geometry type : " << g->toString()
-                              << std::endl;
-                }
-            }
-            if (inst->object->instances.size() > 0) {
-                std::cout
-                    << "Warning: Potentially multilevel instancing is in the scene after "
-                       "flattening?\n";
-            }
-            // Mesh only contains unsupported objects, skip it
-            if (geometries.empty()) {
-                std::cout << "WARNING: Instance contains only unsupported geometries, "
-                             "skipping\n";
-                continue;
-            }
-            const size_t mesh_id = meshes.size();
-            meshes.emplace_back(geometries);
+              parameterized_mesh_id = parameterized_meshes.size();
+              parameterized_meshes.emplace_back(mesh_id, material_ids);
 
-            parameterized_mesh_id = parameterized_meshes.size();
-            parameterized_meshes.emplace_back(mesh_id, material_ids);
+              pbrt_objects[inst->object->name] = parameterized_mesh_id;
+          } else {
+              parameterized_mesh_id = fnd->second;
+          }
 
-            pbrt_objects[inst->object->name] = parameterized_mesh_id;
-        } else {
-            parameterized_mesh_id = fnd->second;
-        }
+          glm::mat4 transform(1.f);
+          transform[0] = glm::vec4(inst->xfm.l.vx.x, inst->xfm.l.vx.y, inst->xfm.l.vx.z, 0.f);
+          transform[1] = glm::vec4(inst->xfm.l.vy.x, inst->xfm.l.vy.y, inst->xfm.l.vy.z, 0.f);
+          transform[2] = glm::vec4(inst->xfm.l.vz.x, inst->xfm.l.vz.y, inst->xfm.l.vz.z, 0.f);
+          transform[3] = glm::vec4(inst->xfm.p.x, inst->xfm.p.y, inst->xfm.p.z, 1.f);
 
-        glm::mat4 transform(1.f);
-        transform[0] = glm::vec4(inst->xfm.l.vx.x, inst->xfm.l.vx.y, inst->xfm.l.vx.z, 0.f);
-        transform[1] = glm::vec4(inst->xfm.l.vy.x, inst->xfm.l.vy.y, inst->xfm.l.vy.z, 0.f);
-        transform[2] = glm::vec4(inst->xfm.l.vz.x, inst->xfm.l.vz.y, inst->xfm.l.vz.z, 0.f);
-        transform[3] = glm::vec4(inst->xfm.p.x, inst->xfm.p.y, inst->xfm.p.z, 1.f);
+          instances.emplace_back(transform, parameterized_mesh_id);
+      }
 
-        instances.emplace_back(transform, parameterized_mesh_id);
-    }
+      validate_materials();
 
-    validate_materials();
+      std::cout << "Generating light for PBRT scene, TODO Will: Load them from the file\n";
+      QuadLight light;
+      light.emission = glm::vec4(20.f);
+      light.normal = glm::vec4(glm::normalize(glm::vec3(0.5, -0.8, -0.5)), 0);
+      light.position = -10.f * light.normal;
+      ortho_basis(light.v_x, light.v_y, glm::vec3(light.normal));
+      light.width = 5.f;
+      light.height = 5.f;
+      lights.push_back(light);
+  }
+  //}}}
+  //{{{
+  uint32_t Scene::load_pbrt_materials (const pbrt::Material::SP &mat,
+                                       const std::map<std::string, pbrt::Texture::SP> &texture_overrides,
+                                       const std::string &pbrt_base_dir,
+                                       phmap::parallel_flat_hash_map<pbrt::Material::SP, size_t> &pbrt_materials,
+                                       phmap::parallel_flat_hash_map<pbrt::Texture::SP, size_t> &pbrt_textures) {
 
-    std::cout << "Generating light for PBRT scene, TODO Will: Load them from the file\n";
-    QuadLight light;
-    light.emission = glm::vec4(20.f);
-    light.normal = glm::vec4(glm::normalize(glm::vec3(0.5, -0.8, -0.5)), 0);
-    light.position = -10.f * light.normal;
-    ortho_basis(light.v_x, light.v_y, glm::vec3(light.normal));
-    light.width = 5.f;
-    light.height = 5.f;
-    lights.push_back(light);
-}
+      auto fnd = pbrt_materials.find(mat);
+      if (fnd != pbrt_materials.end()) {
+          return fnd->second;
+      }
 
-uint32_t Scene::load_pbrt_materials(
-    const pbrt::Material::SP &mat,
-    const std::map<std::string, pbrt::Texture::SP> &texture_overrides,
-    const std::string &pbrt_base_dir,
-    phmap::parallel_flat_hash_map<pbrt::Material::SP, size_t> &pbrt_materials,
-    phmap::parallel_flat_hash_map<pbrt::Texture::SP, size_t> &pbrt_textures)
-{
-    auto fnd = pbrt_materials.find(mat);
-    if (fnd != pbrt_materials.end()) {
-        return fnd->second;
-    }
+      // TODO: The way some of the texturing can work is that the object's attached textures
+      // can override the material parameters in some way
+      if (!texture_overrides.empty()) {
+          std::cout << "TODO: per-shape texture override support\n";
+          for (const auto &t : texture_overrides) {
+              std::cout << t.first << "\n";
+          }
+      }
 
-    // TODO: The way some of the texturing can work is that the object's attached textures
-    // can override the material parameters in some way
-    if (!texture_overrides.empty()) {
-        std::cout << "TODO: per-shape texture override support\n";
-        for (const auto &t : texture_overrides) {
-            std::cout << t.first << "\n";
-        }
-    }
+      DisneyMaterial loaded_mat;
+      if (auto m = std::dynamic_pointer_cast<pbrt::DisneyMaterial>(mat)) {
+          loaded_mat.anisotropy = m->anisotropic;
+          loaded_mat.clearcoat = m->clearCoat;
+          loaded_mat.clearcoat_gloss = m->clearCoatGloss;
+          loaded_mat.base_color = glm::vec3(m->color.x, m->color.y, m->color.z);
+          loaded_mat.ior = m->eta;
+          loaded_mat.metallic = m->metallic;
+          loaded_mat.roughness = m->roughness;
+          loaded_mat.sheen = m->sheen;
+          loaded_mat.sheen_tint = m->sheenTint;
+          loaded_mat.specular_tint = m->specularTint;
+          // PBRT Doesn't use the specular parameter or have textures for the Disney
+          // Material?
+          loaded_mat.specular = 0.f;
+      } else if (auto m = std::dynamic_pointer_cast<pbrt::PlasticMaterial>(mat)) {
+          loaded_mat.base_color = glm::vec3(m->kd.x, m->kd.y, m->kd.z);
+          if (m->map_kd) {
+              if (auto const_tex = std::dynamic_pointer_cast<pbrt::ConstantTexture>(m->map_kd)) {
+                  loaded_mat.base_color =
+                      glm::vec3(const_tex->value.x, const_tex->value.y, const_tex->value.z);
+              } else {
+                  const uint32_t tex_id =
+                      load_pbrt_texture(m->map_kd, pbrt_base_dir, pbrt_textures);
+                  if (tex_id != uint32_t(-1)) {
+                      uint32_t tex_mask = TEXTURED_PARAM_MASK;
+                      SET_TEXTURE_ID(tex_mask, tex_id);
+                      loaded_mat.base_color.r = *reinterpret_cast<float *>(&tex_mask);
+                  }
+              }
+          }
 
-    DisneyMaterial loaded_mat;
-    if (auto m = std::dynamic_pointer_cast<pbrt::DisneyMaterial>(mat)) {
-        loaded_mat.anisotropy = m->anisotropic;
-        loaded_mat.clearcoat = m->clearCoat;
-        loaded_mat.clearcoat_gloss = m->clearCoatGloss;
-        loaded_mat.base_color = glm::vec3(m->color.x, m->color.y, m->color.z);
-        loaded_mat.ior = m->eta;
-        loaded_mat.metallic = m->metallic;
-        loaded_mat.roughness = m->roughness;
-        loaded_mat.sheen = m->sheen;
-        loaded_mat.sheen_tint = m->sheenTint;
-        loaded_mat.specular_tint = m->specularTint;
-        // PBRT Doesn't use the specular parameter or have textures for the Disney
-        // Material?
-        loaded_mat.specular = 0.f;
-    } else if (auto m = std::dynamic_pointer_cast<pbrt::PlasticMaterial>(mat)) {
-        loaded_mat.base_color = glm::vec3(m->kd.x, m->kd.y, m->kd.z);
-        if (m->map_kd) {
-            if (auto const_tex = std::dynamic_pointer_cast<pbrt::ConstantTexture>(m->map_kd)) {
-                loaded_mat.base_color =
-                    glm::vec3(const_tex->value.x, const_tex->value.y, const_tex->value.z);
-            } else {
-                const uint32_t tex_id =
-                    load_pbrt_texture(m->map_kd, pbrt_base_dir, pbrt_textures);
-                if (tex_id != uint32_t(-1)) {
-                    uint32_t tex_mask = TEXTURED_PARAM_MASK;
-                    SET_TEXTURE_ID(tex_mask, tex_id);
-                    loaded_mat.base_color.r = *reinterpret_cast<float *>(&tex_mask);
-                }
-            }
-        }
+          const glm::vec3 ks(m->ks.x, m->ks.y, m->ks.z);
+          loaded_mat.specular = luminance(ks);
+          loaded_mat.roughness = m->roughness;
+      } else if (auto m = std::dynamic_pointer_cast<pbrt::MatteMaterial>(mat)) {
+          loaded_mat.base_color = glm::vec3(m->kd.x, m->kd.y, m->kd.z);
+          if (m->map_kd) {
+              if (auto const_tex = std::dynamic_pointer_cast<pbrt::ConstantTexture>(m->map_kd)) {
+                  loaded_mat.base_color =
+                      glm::vec3(const_tex->value.x, const_tex->value.y, const_tex->value.z);
+              } else {
+                  const uint32_t tex_id =
+                      load_pbrt_texture(m->map_kd, pbrt_base_dir, pbrt_textures);
+                  if (tex_id != uint32_t(-1)) {
+                      uint32_t tex_mask = TEXTURED_PARAM_MASK;
+                      SET_TEXTURE_ID(tex_mask, tex_id);
+                      loaded_mat.base_color.r = *reinterpret_cast<float *>(&tex_mask);
+                  }
+              }
+          }
+      } else if (auto m = std::dynamic_pointer_cast<pbrt::SubstrateMaterial>(mat)) {
+          loaded_mat.base_color = glm::vec3(m->kd.x, m->kd.y, m->kd.z);
+          if (m->map_kd) {
+              if (auto const_tex = std::dynamic_pointer_cast<pbrt::ConstantTexture>(m->map_kd)) {
+                  loaded_mat.base_color =
+                      glm::vec3(const_tex->value.x, const_tex->value.y, const_tex->value.z);
+              } else {
+                  const uint32_t tex_id =
+                      load_pbrt_texture(m->map_kd, pbrt_base_dir, pbrt_textures);
+                  if (tex_id != uint32_t(-1)) {
+                      uint32_t tex_mask = TEXTURED_PARAM_MASK;
+                      SET_TEXTURE_ID(tex_mask, tex_id);
+                      loaded_mat.base_color.r = *reinterpret_cast<float *>(&tex_mask);
+                  }
+              }
+          }
+          // Sounds like this is kind of what the SubstrateMaterial acts like? Diffuse with a
+          // specular and clearcoat?
+          const glm::vec3 ks(m->ks.x, m->ks.y, m->ks.z);
+          loaded_mat.specular = luminance(ks);
+          loaded_mat.roughness = 1.f;
+          loaded_mat.clearcoat = 1.f;
+          loaded_mat.clearcoat_gloss = luminance(ks);
+      } else {
+          std::cout << "Unsupported material type " << mat->toString() << "\n";
+          return -1;
+      }
 
-        const glm::vec3 ks(m->ks.x, m->ks.y, m->ks.z);
-        loaded_mat.specular = luminance(ks);
-        loaded_mat.roughness = m->roughness;
-    } else if (auto m = std::dynamic_pointer_cast<pbrt::MatteMaterial>(mat)) {
-        loaded_mat.base_color = glm::vec3(m->kd.x, m->kd.y, m->kd.z);
-        if (m->map_kd) {
-            if (auto const_tex = std::dynamic_pointer_cast<pbrt::ConstantTexture>(m->map_kd)) {
-                loaded_mat.base_color =
-                    glm::vec3(const_tex->value.x, const_tex->value.y, const_tex->value.z);
-            } else {
-                const uint32_t tex_id =
-                    load_pbrt_texture(m->map_kd, pbrt_base_dir, pbrt_textures);
-                if (tex_id != uint32_t(-1)) {
-                    uint32_t tex_mask = TEXTURED_PARAM_MASK;
-                    SET_TEXTURE_ID(tex_mask, tex_id);
-                    loaded_mat.base_color.r = *reinterpret_cast<float *>(&tex_mask);
-                }
-            }
-        }
-    } else if (auto m = std::dynamic_pointer_cast<pbrt::SubstrateMaterial>(mat)) {
-        loaded_mat.base_color = glm::vec3(m->kd.x, m->kd.y, m->kd.z);
-        if (m->map_kd) {
-            if (auto const_tex = std::dynamic_pointer_cast<pbrt::ConstantTexture>(m->map_kd)) {
-                loaded_mat.base_color =
-                    glm::vec3(const_tex->value.x, const_tex->value.y, const_tex->value.z);
-            } else {
-                const uint32_t tex_id =
-                    load_pbrt_texture(m->map_kd, pbrt_base_dir, pbrt_textures);
-                if (tex_id != uint32_t(-1)) {
-                    uint32_t tex_mask = TEXTURED_PARAM_MASK;
-                    SET_TEXTURE_ID(tex_mask, tex_id);
-                    loaded_mat.base_color.r = *reinterpret_cast<float *>(&tex_mask);
-                }
-            }
-        }
-        // Sounds like this is kind of what the SubstrateMaterial acts like? Diffuse with a
-        // specular and clearcoat?
-        const glm::vec3 ks(m->ks.x, m->ks.y, m->ks.z);
-        loaded_mat.specular = luminance(ks);
-        loaded_mat.roughness = 1.f;
-        loaded_mat.clearcoat = 1.f;
-        loaded_mat.clearcoat_gloss = luminance(ks);
-    } else {
-        std::cout << "Unsupported material type " << mat->toString() << "\n";
-        return -1;
-    }
+      const uint32_t mat_id = materials.size();
+      pbrt_materials[mat] = mat_id;
+      materials.push_back(loaded_mat);
+      return mat_id;
+  }
+  //}}}
+  //{{{
+  uint32_t Scene::load_pbrt_texture (const pbrt::Texture::SP &texture,
+                                     const std::string &pbrt_base_dir,
+                                     phmap::parallel_flat_hash_map<pbrt::Texture::SP, size_t> &pbrt_textures) {
 
-    const uint32_t mat_id = materials.size();
-    pbrt_materials[mat] = mat_id;
-    materials.push_back(loaded_mat);
-    return mat_id;
-}
+      auto fnd = pbrt_textures.find(texture);
+      if (fnd != pbrt_textures.end()) {
+          return fnd->second;
+      }
 
-uint32_t Scene::load_pbrt_texture(
-    const pbrt::Texture::SP &texture,
-    const std::string &pbrt_base_dir,
-    phmap::parallel_flat_hash_map<pbrt::Texture::SP, size_t> &pbrt_textures)
-{
-    auto fnd = pbrt_textures.find(texture);
-    if (fnd != pbrt_textures.end()) {
-        return fnd->second;
-    }
+      if (auto t = std::dynamic_pointer_cast<pbrt::ImageTexture>(texture)) {
+          std::string path = t->fileName;
+          canonicalize_path(path);
+          try {
+              Image img(pbrt_base_dir + "/" + path, t->fileName, SRGB);
+              const uint32_t id = textures.size();
+              pbrt_textures[texture] = id;
+              textures.push_back(img);
+              std::cout << "Loaded image texture: " << t->fileName << "\n";
+              return id;
+          } catch (const std::runtime_error &) {
+              std::cout << "Unsupported file format or failed to load file: " << t->fileName
+                        << "\n";
+              return -1;
+          }
+      }
 
-    if (auto t = std::dynamic_pointer_cast<pbrt::ImageTexture>(texture)) {
-        std::string path = t->fileName;
-        canonicalize_path(path);
-        try {
-            Image img(pbrt_base_dir + "/" + path, t->fileName, SRGB);
-            const uint32_t id = textures.size();
-            pbrt_textures[texture] = id;
-            textures.push_back(img);
-            std::cout << "Loaded image texture: " << t->fileName << "\n";
-            return id;
-        } catch (const std::runtime_error &) {
-            std::cout << "Unsupported file format or failed to load file: " << t->fileName
-                      << "\n";
-            return -1;
-        }
-    }
-
-    std::cout << "Texture type " << texture->toString() << " is not supported\n";
-    return -1;
-}
-
+      std::cout << "Texture type " << texture->toString() << " is not supported\n";
+      return -1;
+  }
+  //}}}
 #endif
 
+//{{{
 void Scene::validate_materials()
 {
     const bool need_default_mat =
@@ -937,3 +954,4 @@ void Scene::validate_materials()
         }
     }
 }
+//}}}

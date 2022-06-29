@@ -2,10 +2,10 @@ cmake_minimum_required (VERSION 3.18)
 
 option (REPORT_RAY_STATS "Track and report rays/second. May incur a slight rendering performance penalty" OFF)
 
-project (chameleonrt)
+project (cham)
 
 if (NOT WIN32)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
+  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic")
 endif()
 
 add_definitions (-DNOMINMAX -DGLM_ENABLE_EXPERIMENTAL -DSDL_MAIN_HANDLED -DWIN32_LEAN_AND_MEAN)
@@ -28,12 +28,10 @@ add_subdirectory (imgui)
 add_subdirectory (util)
 add_subdirectory (backends)
 
-add_executable (chameleonrt main.cpp)
+add_executable (${PROJECT_NAME} main.cpp)
 
-set_target_properties (chameleonrt PROPERTIES
-	CXX_STANDARD 14
-	CXX_STANDARD_REQUIRED ON)
+set_target_properties (${PROJECT_NAME} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
 
-target_link_libraries (chameleonrt PUBLIC util display)
+target_link_libraries (${PROJECT_NAME} PUBLIC util display)
 
-install (TARGETS chameleonrt RUNTIME DESTINATION bin)
+install (TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)

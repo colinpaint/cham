@@ -1,3 +1,4 @@
+//{{{  includes
 #include <algorithm>
 #include <array>
 #ifdef _WIN32
@@ -19,8 +20,10 @@
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+//}}}
 
-std::string pretty_print_count(const double count)
+//{{{
+std::string pretty_print_count (const double count)
 {
     const double giga = 1000000000;
     const double mega = 1000000;
@@ -34,13 +37,17 @@ std::string pretty_print_count(const double count)
     }
     return std::to_string(count);
 }
+//}}}
 
-uint64_t align_to(uint64_t val, uint64_t align)
+//{{{
+uint64_t align_to (uint64_t val, uint64_t align)
 {
     return ((val + align - 1) / align) * align;
 }
+//}}}
 
-void ortho_basis(glm::vec3 &v_x, glm::vec3 &v_y, const glm::vec3 &n)
+//{{{
+void ortho_basis (glm::vec3 &v_x, glm::vec3 &v_y, const glm::vec3 &n)
 {
     v_y = glm::vec3(0);
 
@@ -56,13 +63,16 @@ void ortho_basis(glm::vec3 &v_x, glm::vec3 &v_y, const glm::vec3 &n)
     v_x = glm::normalize(glm::cross(v_y, n));
     v_y = glm::normalize(glm::cross(n, v_x));
 }
+//}}}
 
-void canonicalize_path(std::string &path)
+//{{{
+void canonicalize_path (std::string &path)
 {
     std::replace(path.begin(), path.end(), '\\', '/');
 }
-
-std::string get_file_extension(const std::string &fname)
+//}}}
+//{{{
+std::string get_file_extension (const std::string &fname)
 {
     const size_t fnd = fname.find_last_of('.');
     if (fnd == std::string::npos) {
@@ -70,7 +80,8 @@ std::string get_file_extension(const std::string &fname)
     }
     return fname.substr(fnd + 1);
 }
-
+//}}}
+//{{{
 std::string get_cpu_brand()
 {
 #if defined(__APPLE__) and defined(__aarch64__)
@@ -98,24 +109,30 @@ std::string get_cpu_brand()
     return brand;
 #endif
 }
+//}}}
 
-float srgb_to_linear(float x)
+//{{{
+float srgb_to_linear (float x)
 {
     if (x <= 0.04045f) {
         return x / 12.92f;
     }
     return std::pow((x + 0.055f) / 1.055f, 2.4);
 }
-
-float linear_to_srgb(float x)
+//}}}
+//{{{
+float linear_to_srgb (float x)
 {
     if (x <= 0.0031308f) {
         return 12.92f * x;
     }
     return 1.055f * pow(x, 1.f / 2.4f) - 0.055f;
 }
+//}}}
 
-float luminance(const glm::vec3 &c)
+//{{{
+float luminance (const glm::vec3 &c)
 {
     return 0.2126f * c.x + 0.7152f * c.y + 0.0722f * c.z;
 }
+//}}}

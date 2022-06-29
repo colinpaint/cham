@@ -1,3 +1,4 @@
+//{{{  includes
 #include "file_mapping.h"
 #include <fstream>
 #include <stdexcept>
@@ -9,8 +10,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 #endif
+//}}}
 
-FileMapping::FileMapping(const std::string &fname) : mapping(nullptr), num_bytes(0)
+//{{{
+FileMapping::FileMapping (const std::string &fname) : mapping(nullptr), num_bytes(0)
 {
 #ifdef _WIN32
     file = CreateFile(fname.c_str(),
@@ -58,8 +61,9 @@ FileMapping::FileMapping(const std::string &fname) : mapping(nullptr), num_bytes
     }
 #endif
 }
-
-FileMapping::FileMapping(FileMapping &&fm)
+//}}}
+//{{{
+FileMapping::FileMapping( FileMapping &&fm)
     : mapping(fm.mapping),
       num_bytes(fm.num_bytes),
       file(fm.file)
@@ -77,7 +81,8 @@ FileMapping::FileMapping(FileMapping &&fm)
     fm.file = -1;
 #endif
 }
-
+//}}}
+//{{{
 FileMapping::~FileMapping()
 {
     if (mapping) {
@@ -91,8 +96,10 @@ FileMapping::~FileMapping()
 #endif
     }
 }
+//}}}
 
-FileMapping &FileMapping::operator=(FileMapping &&fm)
+//{{{
+FileMapping& FileMapping::operator = (FileMapping &&fm)
 {
     mapping = fm.mapping;
     num_bytes = fm.num_bytes;
@@ -112,13 +119,16 @@ FileMapping &FileMapping::operator=(FileMapping &&fm)
 
     return *this;
 }
-
-const uint8_t *FileMapping::data() const
+//}}}
+//{{{
+const uint8_t* FileMapping::data() const
 {
     return static_cast<uint8_t *>(mapping);
 }
-
+//}}}
+//{{{
 size_t FileMapping::nbytes() const
 {
     return num_bytes;
 }
+//}}}

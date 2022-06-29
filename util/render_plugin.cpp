@@ -1,3 +1,4 @@
+//{{{  includes
 #include "render_plugin.h"
 #include <iostream>
 #include <stdexcept>
@@ -9,8 +10,10 @@
 #define PLUGIN_PREFIX "lib"
 #define PLUGIN_SUFFIX ".so"
 #endif
+//}}}
 
-RenderPlugin::RenderPlugin(const std::string &plugin_name) : name(plugin_name)
+//{{{
+RenderPlugin::RenderPlugin (const std::string &plugin_name) : name(plugin_name)
 {
     const std::string plugin_file_name = std::string(PLUGIN_PREFIX) + plugin_name + std::string(PLUGIN_SUFFIX);
     std::string error_msg;
@@ -55,7 +58,8 @@ RenderPlugin::RenderPlugin(const std::string &plugin_name) : name(plugin_name)
     }
     populate_fcn_table(&function_table);
 }
-
+//}}}
+//{{{
 RenderPlugin::~RenderPlugin()
 {
 #ifdef _WIN32
@@ -64,28 +68,37 @@ RenderPlugin::~RenderPlugin()
     dlclose(plugin);
 #endif
 }
+//}}}
 
-uint32_t RenderPlugin::get_window_flags() const
-{
-    return function_table.get_window_flags();
-}
-
-void RenderPlugin::set_imgui_context(ImGuiContext *context)
-{
-    function_table.set_imgui_context(context);
-}
-
-std::unique_ptr<Display> RenderPlugin::make_display(SDL_Window *window) const
-{
-    return function_table.make_display(window);
-}
-
-std::unique_ptr<RenderBackend> RenderPlugin::make_renderer(Display *display) const
-{
-    return function_table.make_renderer(display);
-}
-
+//{{{
 const std::string &RenderPlugin::get_name() const
 {
     return name;
 }
+//}}}
+//{{{
+uint32_t RenderPlugin::get_window_flags() const
+{
+    return function_table.get_window_flags();
+}
+//}}}
+
+//{{{
+void RenderPlugin::set_imgui_context (ImGuiContext *context)
+{
+    function_table.set_imgui_context(context);
+}
+//}}}
+
+//{{{
+std::unique_ptr<Display> RenderPlugin::make_display (SDL_Window *window) const
+{
+    return function_table.make_display(window);
+}
+//}}}
+//{{{
+std::unique_ptr<RenderBackend> RenderPlugin::make_renderer (Display *display) const
+{
+    return function_table.make_renderer(display);
+}
+//}}}

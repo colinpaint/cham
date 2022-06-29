@@ -10,7 +10,7 @@ cd /mnt/c/projects/ChameleonRT/build
 
 /mnt/c/projects/embreeLinuxRelease/lib/cmake
 
-./chameleonrt embree cat/12221_Cat_v1_l3.obj
+./cham embree cat/cat.obj
 
 gzip -d *.tar.gz
 tar -xvf *.tar

@@ -1,3 +1,4 @@
+//{{{  includes
 #include "flatten_gltf.h"
 #include <iterator>
 #include <string>
@@ -5,8 +6,10 @@
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+//}}}
 
-glm::mat4 read_node_transform(const tinygltf::Node &n)
+//{{{
+glm::mat4 read_node_transform (const tinygltf::Node &n)
 {
     glm::mat4 transform(1.f);
     if (!n.matrix.empty()) {
@@ -28,8 +31,9 @@ glm::mat4 read_node_transform(const tinygltf::Node &n)
     }
     return transform;
 }
-
-bool gltf_is_single_level(const tinygltf::Model &model)
+//}}}
+//{{{
+bool gltf_is_single_level (const tinygltf::Model &model)
 {
     // Recursively traverse the GLTF scene graph and break once we
     // encounter multi-level instancing
@@ -41,8 +45,10 @@ bool gltf_is_single_level(const tinygltf::Model &model)
     }
     return true;
 }
+//}}}
 
-void flatten_gltf_node(const tinygltf::Node &node,
+//{{{
+void flatten_gltf_node (const tinygltf::Node &node,
                        const tinygltf::Model &model,
                        const glm::mat4 &parent_transform,
                        std::vector<tinygltf::Node> &flattened)
@@ -66,8 +72,9 @@ void flatten_gltf_node(const tinygltf::Node &node,
         flatten_gltf_node(model.nodes[c], model, transform, flattened);
     }
 }
-
-void flatten_gltf(tinygltf::Model &model)
+//}}}
+//{{{
+void flatten_gltf (tinygltf::Model &model)
 {
     if (gltf_is_single_level(model)) {
         return;
@@ -93,3 +100,4 @@ void flatten_gltf(tinygltf::Model &model)
     model.defaultScene = model.scenes.size();
     model.scenes.push_back(flattened_scene);
 }
+//}}}
