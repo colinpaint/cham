@@ -1,9 +1,13 @@
 //{{{  includes
 #include <SDL.h>
+
 #include "display/gldisplay.h"
 #include "imgui.h"
+
 #include "render_embree.h"
 #include "render_plugin.h"
+
+using namespace std;
 //}}}
 
 //{{{
@@ -20,15 +24,15 @@ void set_imgui_context (ImGuiContext* context)
 }
 //}}}
 //{{{
-std::unique_ptr<Display> make_display (SDL_Window* window)
+unique_ptr<Display> make_display (SDL_Window* window)
 {
-    return std::make_unique<GLDisplay>(window);
+    return make_unique<GLDisplay>(window);
 }
 //}}}
 //{{{
-std::unique_ptr<RenderBackend> make_renderer (Display*)
+unique_ptr<RenderBackend> make_renderer (Display*)
 {
-    return std::make_unique<RenderEmbree>();
+    return make_unique<RenderEmbree>();
 }
 //}}}
 

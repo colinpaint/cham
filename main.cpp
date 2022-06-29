@@ -20,10 +20,12 @@
 #include "util/display/gldisplay.h"
 #include "util/display/imgui_impl_sdl.h"
 #include "util/render_plugin.h"
+
+using namespace std;
 //}}}
 
 //{{{
-const std::string USAGE =
+const string USAGE =
     "Usage: <backend> <mesh.obj/gltf/glb> [options]\n"
     "Render backend libraries should be named following (lib)crt_<backend>.(dll|so)\n"
     "Options:\n"
@@ -46,8 +48,8 @@ glm::vec2 transform_mouse (glm::vec2 in) {
 //}}}
 
 //{{{
-void run_app (const std::vector<std::string> &args,
-             SDL_Window *window, Display *display, RenderPlugin *render_plugin) {
+void run (const vector<string> &args,
+          SDL_Window *window, Display *display, RenderPlugin *render_plugin) {
 
   ImGuiIO &io = ImGui::GetIO();
 
@@ -59,38 +61,38 @@ void run_app (const std::vector<std::string> &args,
   float fov_y = 65.f;
   size_t camera_id = 0;
 
-  std::string scene_file;
-  std::string validation_img_prefix;
+  string scene_file;
+  string validation_img_prefix;
   for (size_t i = 1; i < args.size(); ++i) {
     //{{{  parse args
     if (args[i] == "-eye") {
-      eye.x = std::stof (args[++i]);
-      eye.y = std::stof (args[++i]);
-      eye.z = std::stof (args[++i]);
+      eye.x = stof (args[++i]);
+      eye.y = stof (args[++i]);
+      eye.z = stof (args[++i]);
       got_camera_args = true;
       }
 
     else if (args[i] == "-center") {
-      center.x = std::stof (args[++i]);
-      center.y = std::stof (args[++i]);
-      center.z = std::stof (args[++i]);
+      center.x = stof (args[++i]);
+      center.y = stof (args[++i]);
+      center.z = stof (args[++i]);
       got_camera_args = true;
       }
 
     else if (args[i] == "-up") {
-      up.x = std::stof (args[++i]);
-      up.y = std::stof (args[++i]);
-      up.z = std::stof (args[++i]);
+      up.x = stof (args[++i]);
+      up.y = stof (args[++i]);
+      up.z = stof (args[++i]);
       got_camera_args = true;
       }
 
     else if (args[i] == "-fov") {
-      fov_y = std::stof (args[++i]);
+      fov_y = stof (args[++i]);
       got_camera_args = true;
       }
 
     else if (args[i] == "-camera")
-      camera_id = std::stol (args[++i]);
+      camera_id = stol (args[++i]);
 
     else if (args[i] == "-validation")
       validation_img_prefix = args[++i];
@@ -105,18 +107,18 @@ void run_app (const std::vector<std::string> &args,
     }
     //}}}
 
-  std::unique_ptr<RenderBackend> renderer = render_plugin->make_renderer (display);
+  unique_ptr<RenderBackend> renderer = render_plugin->make_renderer (display);
 
   if (!renderer) {
     //{{{  no renderer, error exit
-    std::cout << "Error: No renderer backend or invalid backend name specified\n" << USAGE;
-    std::exit(1);
+    cout << "Error: No renderer backend or invalid backend name specified\n" << USAGE;
+    exit(1);
     }
     //}}}
   if (scene_file.empty()) {
     //{{{  no model, error exit
-    std::cout << "Error: No model file specified\n" << USAGE;
-    std::exit(1);
+    cout << "Error: No model file specified\n" << USAGE;
+    exit(1);
     }
     //}}}
 
@@ -124,11 +126,11 @@ void run_app (const std::vector<std::string> &args,
   renderer->initialize (win_width, win_height);
 
   //{{{  load scene file
-  std::string scene_info;
+  string scene_info;
   {
     Scene scene (scene_file);
 
-    std::stringstream ss;
+    stringstream ss;
     ss << "Scene '" << scene_file << "':\n"
        << "# Unique Triangles: " << pretty_print_count(scene.unique_tris()) << "\n"
        << "# Total Triangles: " << pretty_print_count(scene.total_tris()) << "\n"
@@ -142,7 +144,7 @@ void run_app (const std::vector<std::string> &args,
        << "# Cameras: " << scene.cameras.size();
 
     scene_info = ss.str();
-    std::cout << scene_info << "\n";
+    cout << scene_info << "\n";
 
     renderer->set_scene(scene);
 
@@ -157,11 +159,11 @@ void run_app (const std::vector<std::string> &args,
 
   ArcballCamera camera (eye, center, up);
 
-  const std::string rt_backend = renderer->name();
-  const std::string cpu_brand = get_cpu_brand();
-  const std::string gpu_brand = display->gpu_brand();
-  const std::string image_output = "chameleonrt.png";
-  const std::string display_frontend = display->name();
+  const string rt_backend = renderer->name();
+  const string cpu_brand = get_cpu_brand();
+  const string gpu_brand = display->gpu_brand();
+  const string image_output = "chameleonrt.png";
+  const string display_frontend = display->name();
 
   size_t frame_id = 0;
   float render_time = 0.f;
@@ -190,7 +192,7 @@ void run_app (const std::vector<std::string> &args,
           auto eye = camera.eye();
           auto center = camera.center();
           auto up = camera.up();
-          std::cout << "-eye " << eye.x << " " << eye.y << " " << eye.z
+          cout << "-eye " << eye.x << " " << eye.y << " " << eye.z
                     << " -center " << center.x << " " << center.y << " " << center.z
                     << " -up " << up.x << " " << up.y << " " << up.z << " -fov "
                     << fov_y << "\n";
@@ -263,14 +265,14 @@ void run_app (const std::vector<std::string> &args,
     if (save_image) {
       //{{{  save image
       save_image = false;
-      std::cout << "Image saved to " << image_output << "\n";
+      cout << "Image saved to " << image_output << "\n";
       stbi_write_png(image_output.c_str(), win_width, win_height, 4, renderer->img.data(), 4 * win_width);
       }
       //}}}
     if (!validation_img_prefix.empty()) {
       //{{{  save png
-      const std::string img_name = validation_img_prefix + render_plugin->get_name() +
-                                   "-f" + std::to_string(frame_id) + ".png";
+      const string img_name = validation_img_prefix + render_plugin->get_name() +
+                                   "-f" + to_string(frame_id) + ".png";
       stbi_write_png(img_name.c_str(), win_width, win_height, 4, renderer->img.data(), 4 * win_width);
       }
       //}}}
@@ -295,7 +297,7 @@ void run_app (const std::vector<std::string> &args,
                  render_time / frame_id, 1000.f / (render_time / frame_id));
     //{{{  add ray stats
     if (stats.rays_per_second > 0) {
-      const std::string rays_per_sec = pretty_print_count(rays_per_second / frame_id);
+      const string rays_per_sec = pretty_print_count(rays_per_second / frame_id);
       ImGui::Text("Rays per-second: %sRay/s", rays_per_sec.c_str());
       }
 
@@ -324,49 +326,49 @@ void run_app (const std::vector<std::string> &args,
 //{{{
 int main (int argc, const char **argv) {
 
-  const std::vector<std::string> args(argv, argv + argc);
-  auto fnd_help = std::find_if (args.begin(), args.end(), [](const std::string &a) {
+  const vector<string> args(argv, argv + argc);
+  auto fnd_help = find_if (args.begin(), args.end(), [](const string &a) {
     return a == "-h" || a == "--help";
     });
 
   if (argc < 3 || fnd_help != args.end()) {
     //{{{  usage, error, exit
-    std::cout << USAGE;
+    cout << USAGE;
     return 1;
     }
     //}}}
 
   if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
     //{{{  sdl init fialed, exit
-    std::cerr << "Failed to init SDL: " << SDL_GetError() << "\n";
+    cerr << "Failed to init SDL: " << SDL_GetError() << "\n";
     return -1;
     }
     //}}}
 
-  std::unique_ptr<RenderPlugin> render_plugin = std::make_unique<RenderPlugin>("crt_" + args[1]);
+  unique_ptr<RenderPlugin> render_plugin = make_unique<RenderPlugin>("crt_" + args[1]);
   for (size_t i = 2; i < args.size(); ++i) {
     if (args[i] == "-img") {
-      win_width = std::stoi (args[++i]);
-      win_height = std::stoi (args[++i]);
+      win_width = stoi (args[++i]);
+      win_height = stoi (args[++i]);
       continue;
       }
     }
 
   const uint32_t window_flags = render_plugin->get_window_flags() | SDL_WINDOW_RESIZABLE;
   if (window_flags & SDL_WINDOW_OPENGL) {
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute (SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+    SDL_GL_SetAttribute (SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute (SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute (SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+    SDL_GL_SetAttribute (SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute (SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute (SDL_GL_STENCIL_SIZE, 8);
     }
 
-  SDL_Window* window = SDL_CreateWindow ("ChameleonRT",
-                                        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                        win_width, win_height, window_flags);
+  SDL_Window* window = SDL_CreateWindow ("cham",
+                                         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                                         win_width, win_height, window_flags);
 
   ImGui::CreateContext();
   ImGui::StyleColorsDark();
@@ -374,8 +376,8 @@ int main (int argc, const char **argv) {
 
   render_plugin->set_imgui_context (ImGui::GetCurrentContext());
   {
-    std::unique_ptr<Display> display = render_plugin->make_display (window);
-    run_app (args, window, display.get(), render_plugin.get());
+    unique_ptr<Display> display = render_plugin->make_display (window);
+    run (args, window, display.get(), render_plugin.get());
   }
 
   ImGui_ImplSDL2_Shutdown();

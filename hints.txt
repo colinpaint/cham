@@ -1,0 +1,16 @@
+LD_LIBRARY_PATH=.
+export LD_LIBRARY_PATH
+echo $LD_LIBRARY_PATH
+
+cmake .. -DENABLE_OSPRAY=ON -Dospray_DIR=/mnt/c/projects/osprayLinuxRelease/lib/cmake/ospray-2.10.0
+
+cd /mnt/c/projects/ChameleonRT/build
+
+/mnt/c/projects/ispcLinuxRelease/bin/ispc
+
+/mnt/c/projects/embreeLinuxRelease/lib/cmake
+
+./cham embree cat/cat.obj
+
+gzip -d *.tar.gz
+tar -xvf *.tar

@@ -1,22 +1,29 @@
 //{{{  includes
 #include "render_embree.h"
+
 #include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <limits>
 #include <numeric>
+
 #include <tbb/global_control.h>
 #include <tbb/parallel_for.h>
+
 #ifndef __aarch64__
-#include <pmmintrin.h>
-#include <xmmintrin.h>
+  #include <pmmintrin.h>
+  #include <xmmintrin.h>
 #endif
+
 #include <util.h>
 #include "render_embree_ispc.h"
+
 #include <glm/ext.hpp>
+
+using namespace std;
 //}}}
 
-static std::unique_ptr<tbb::global_control> tbb_thread_config;
+static unique_ptr<tbb::global_control> tbb_thread_config;
 
 //{{{
 RenderEmbree::RenderEmbree() {
@@ -36,7 +43,7 @@ RenderEmbree::~RenderEmbree() {
 //}}}
 
 //{{{
-std::string RenderEmbree::name() {
+string RenderEmbree::name() {
   return "Embree (w/ TBB & ISPC)";
   }
 //}}}
@@ -68,27 +75,27 @@ void RenderEmbree::set_scene (const Scene &scene) {
 
   frame_id = 0;
 
-  std::vector<std::shared_ptr<embree::TriangleMesh>> meshes;
+  vector<shared_ptr<embree::TriangleMesh>> meshes;
   for (const auto &mesh : scene.meshes) {
-    std::vector<std::shared_ptr<embree::Geometry>> geometries;
+    vector<shared_ptr<embree::Geometry>> geometries;
     for (const auto &geom : mesh.geometries) {
-      geometries.push_back (std::make_shared<embree::Geometry>(
+      geometries.push_back (make_shared<embree::Geometry>(
          device, geom.vertices, geom.indices, geom.normals, geom.uvs));
       }
 
-    meshes.push_back (std::make_shared<embree::TriangleMesh>(device, geometries));
+    meshes.push_back (make_shared<embree::TriangleMesh>(device, geometries));
     }
 
   parameterized_meshes = scene.parameterized_meshes;
 
-  std::vector<std::shared_ptr<embree::Instance>> instances;
+  vector<shared_ptr<embree::Instance>> instances;
   for (const auto &inst : scene.instances) {
     const auto &pm = parameterized_meshes[inst.parameterized_mesh_id];
-    instances.push_back (std::make_shared<embree::Instance>(
+    instances.push_back (make_shared<embree::Instance>(
       device, meshes[pm.mesh_id], inst.transform, pm.material_ids));
     }
 
-  scene_bvh = std::make_shared<embree::TopLevelBVH>(device, instances);
+  scene_bvh = make_shared<embree::TopLevelBVH>(device, instances);
 
   textures = scene.textures;
 
@@ -100,7 +107,7 @@ void RenderEmbree::set_scene (const Scene &scene) {
       return;
       }
     img.color_space = LINEAR;
-    const int convert_channels = std::min(3, img.channels);
+    const int convert_channels = min(3, img.channels);
     tbb::parallel_for (size_t(0), size_t(img.width) * img.height, [&](size_t px) {
       for (int c = 0; c < convert_channels; ++c) {
         float x = img.img[px * img.channels + c] / 255.f;
@@ -111,9 +118,9 @@ void RenderEmbree::set_scene (const Scene &scene) {
     });
 
   ispc_textures.reserve (textures.size());
-  std::transform (textures.begin(), textures.end(), std::back_inserter(ispc_textures),
-                  [](const Image &img) { 
-    return embree::ISPCTexture2D(img); 
+  transform (textures.begin(), textures.end(), back_inserter(ispc_textures),
+                  [](const Image &img) {
+    return embree::ISPCTexture2D(img);
     });
 
   material_params.reserve(scene.materials.size());
@@ -144,11 +151,11 @@ RenderStats RenderEmbree::render (const glm::vec3 &pos, const glm::vec3 &dir, co
 
   RenderStats stats;
 
-  if (camera_changed) 
+  if (camera_changed)
     frame_id = 0;
 
   glm::vec2 img_plane_size;
-  img_plane_size.y = 2.f * std::tan (glm::radians(0.5f * fovy));
+  img_plane_size.y = 2.f * tan (glm::radians(0.5f * fovy));
   img_plane_size.x = img_plane_size.y * static_cast<float>(fb_dims.x) / fb_dims.y;
 
   embree::ViewParams view_params;
@@ -173,7 +180,7 @@ RenderStats RenderEmbree::render (const glm::vec3 &pos, const glm::vec3 &dir, co
 
   uint8_t *color = reinterpret_cast<uint8_t*>(img.data());
 
-  auto start = std::chrono::high_resolution_clock::now();
+  auto start = chrono::high_resolution_clock::now();
   tbb::parallel_for (uint32_t(0), ntiles.x * ntiles.y, [&](uint32_t tile_id) {
     const glm::uvec2 tile = glm::uvec2 (tile_id % ntiles.x, tile_id / ntiles.x);
     const glm::uvec2 tile_pos = tile * tile_size;
@@ -194,16 +201,16 @@ RenderStats RenderEmbree::render (const glm::vec3 &pos, const glm::vec3 &dir, co
 
     ispc::tile_to_uint8 (&ispc_tile, color);
     #ifdef REPORT_RAY_STATS
-      num_rays[tile_id] = std::accumulate (ray_stats[tile_id].begin(), ray_stats[tile_id].end(), uint64_t(0),
+      num_rays[tile_id] = accumulate (ray_stats[tile_id].begin(), ray_stats[tile_id].end(), uint64_t(0),
                                            [](const uint64_t &total, const uint16_t &c) { return total + c; });
     #endif
     });
 
-  auto end = std::chrono::high_resolution_clock::now();
-  stats.render_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() * 1.0e-6;
+  auto end = chrono::high_resolution_clock::now();
+  stats.render_time = chrono::duration_cast<chrono::nanoseconds>(end - start).count() * 1.0e-6;
 
   #ifdef REPORT_RAY_STATS
-    const uint64_t total_rays = std::accumulate (num_rays.begin(), num_rays.end(), 0);
+    const uint64_t total_rays = accumulate (num_rays.begin(), num_rays.end(), 0);
     stats.rays_per_second = total_rays / (stats.render_time * 1.0e-3);
   #endif
 
