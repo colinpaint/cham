@@ -48,11 +48,9 @@ glm::vec2 transform_mouse (glm::vec2 in) {
 //}}}
 
 //{{{
-void run (const vector<string> &args,
-          SDL_Window *window, Display *display, RenderPlugin *render_plugin) {
+void run (const vector<string> &args, SDL_Window* window, Display* display, RenderPlugin* render_plugin) {
 
   ImGuiIO &io = ImGui::GetIO();
-
 
   bool got_camera_args = false;
   glm::vec3 eye(0, 0, 5);
@@ -327,11 +325,14 @@ void run (const vector<string> &args,
 //{{{
 int main (int argc, const char **argv) {
 
+  // get args
   const vector<string> args(argv, argv + argc);
   auto fnd_help = find_if (args.begin(), args.end(), [](const string &a) {
     return a == "-h" || a == "--help";
     });
 
+
+  // not enoughg args
   if (argc < 3 || fnd_help != args.end()) {
     //{{{  usage, error, exit
     cout << USAGE;
@@ -339,13 +340,15 @@ int main (int argc, const char **argv) {
     }
     //}}}
 
-  if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-    //{{{  sdl init fialed, exit
+  // startup SDL
+  if (SDL_Init (SDL_INIT_EVERYTHING) != 0) {
+    //{{{  sdl init failed, exit
     cerr << "Failed to init SDL: " << SDL_GetError() << "\n";
     return -1;
     }
     //}}}
 
+  // starup renderPlugin
   unique_ptr<RenderPlugin> render_plugin = make_unique<RenderPlugin>("crt_" + args[1]);
   for (size_t i = 2; i < args.size(); ++i) {
     if (args[i] == "-img") {
@@ -355,6 +358,7 @@ int main (int argc, const char **argv) {
       }
     }
 
+  // create SDL window
   const uint32_t window_flags = render_plugin->get_window_flags() | SDL_WINDOW_RESIZABLE;
   if (window_flags & SDL_WINDOW_OPENGL) {
     SDL_GL_SetAttribute (SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
@@ -366,9 +370,7 @@ int main (int argc, const char **argv) {
     SDL_GL_SetAttribute (SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute (SDL_GL_STENCIL_SIZE, 8);
     }
-
-  SDL_Window* window = SDL_CreateWindow ("cham",
-                                         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+  SDL_Window* window = SDL_CreateWindow ("cham", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                          win_width, win_height, window_flags);
 
   ImGui::CreateContext();
