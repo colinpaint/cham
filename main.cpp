@@ -127,6 +127,7 @@ void run (const vector<string> &args,
 
   //{{{  load scene file
   string scene_info;
+
   {
     Scene scene (scene_file);
 
@@ -146,7 +147,7 @@ void run (const vector<string> &args,
     scene_info = ss.str();
     cout << scene_info << "\n";
 
-    renderer->set_scene(scene);
+    renderer->set_scene (scene);
 
     if (!got_camera_args && !scene.cameras.empty()) {
       eye = scene.cameras[camera_id].position;
@@ -272,8 +273,8 @@ void run (const vector<string> &args,
     if (!validation_img_prefix.empty()) {
       //{{{  save png
       const string img_name = validation_img_prefix + render_plugin->get_name() +
-                                   "-f" + to_string(frame_id) + ".png";
-      stbi_write_png(img_name.c_str(), win_width, win_height, 4, renderer->img.data(), 4 * win_width);
+                                   "-f" + to_string (frame_id) + ".png";
+      stbi_write_png (img_name.c_str(), win_width, win_height, 4, renderer->img.data(), 4 * win_width);
       }
       //}}}
 
@@ -289,26 +290,26 @@ void run (const vector<string> &args,
     // new frame
     display->new_frame();
 
-    ImGui_ImplSDL2_NewFrame(window);
+    ImGui_ImplSDL2_NewFrame (window);
     ImGui::NewFrame();
 
-    ImGui::Begin ("Render Info");
-    ImGui::Text ("Render Time: %.3f ms/frame (%.1f FPS)",
-                 render_time / frame_id, 1000.f / (render_time / frame_id));
+    ImGui::Begin ("info");
+    ImGui::Text ("time: %.3f ms/frame (%.1f FPS)", render_time / frame_id, 1000.f / (render_time / frame_id));
     //{{{  add ray stats
-    if (stats.rays_per_second > 0) {
-      const string rays_per_sec = pretty_print_count(rays_per_second / frame_id);
-      ImGui::Text("Rays per-second: %sRay/s", rays_per_sec.c_str());
-      }
+    if (stats.rays_per_second > 0)
+      ImGui::Text ("Rays per-second: %sRay/s", pretty_print_count (rays_per_second / frame_id).c_str());
 
     ImGui::Text ("Total Application Time: %.3f ms/frame (%.1f FPS)",
-                1000.0f / ImGui::GetIO().Framerate,
-                ImGui::GetIO().Framerate);
+                 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
     ImGui::Text ("RT Backend: %s", rt_backend.c_str());
+
     ImGui::Text ("CPU: %s", cpu_brand.c_str());
     ImGui::Text ("GPU: %s", gpu_brand.c_str());
+
     ImGui::Text ("Accumulated Frames: %lu", frame_id);
     ImGui::Text ("Display Frontend: %s", display_frontend.c_str());
+
     ImGui::Text ("%s", scene_info.c_str());
     //}}}
 
