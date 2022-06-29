@@ -15,49 +15,51 @@
 //}}}
 
 //{{{
-RenderOSPRay::RenderOSPRay() : fb(0)
-{
-    const char *argv[] = {"render_ospray_backend"};
-    int argc = 1;
-    if (ospInit(&argc, argv) != OSP_NO_ERROR) {
-        std::cout << "Failed to init OSPRay\n";
-        throw std::runtime_error("Failed to init OSPRay");
+RenderOSPRay::RenderOSPRay() : fb(0) {
+
+  const char *argv[] = {"render_ospray_backend"};
+  int argc = 1;
+  if (ospInit(&argc, argv) != OSP_NO_ERROR) {
+    std::cout << "Failed to init OSPRay\n";
+    throw std::runtime_error ("Failed to init OSPRay");
     }
 
-    camera = ospNewCamera("perspective");
-    // Apply a y-flip to the image to match the other backends which render
-    // in the DirectX/Vulkan image coordinate system
-    const glm::vec2 img_start(0.f, 1.f);
-    const glm::vec2 img_end(1.f, 0.f);
-    ospSetParam(camera, "imageStart", OSP_VEC2F, &img_start.x);
-    ospSetParam(camera, "imageEnd", OSP_VEC2F, &img_end.x);
+  camera = ospNewCamera("perspective");
 
-    renderer = ospNewRenderer("pathtracer");
-    ospCommit(renderer);
+  // Apply a y-flip to the image to match the other backends which render
+  // in the DirectX/Vulkan image coordinate system
+  const glm::vec2 img_start (0.f, 1.f);
+  const glm::vec2 img_end (1.f, 0.f);
+  ospSetParam (camera, "imageStart", OSP_VEC2F, &img_start.x);
+  ospSetParam (camera, "imageEnd", OSP_VEC2F, &img_end.x);
 
-    world = ospNewWorld();
-}
+  renderer = ospNewRenderer ("pathtracer");
+  ospCommit (renderer);
+
+  world = ospNewWorld();
+  }
 //}}}
 //{{{
-RenderOSPRay::~RenderOSPRay()
-{
-    for (auto &t : textures) {
-        ospRelease(t);
+RenderOSPRay::~RenderOSPRay() {
+
+  for (auto &t : textures) {
+    ospRelease(t);
     }
-    for (auto &m : materials) {
-        ospRelease(m);
+  for (auto &m : materials) {
+    ospRelease(m);
     }
-    for (auto &i : instances) {
-        ospRelease(i);
+  for (auto &i : instances) {
+    ospRelease(i);
     }
-    for (auto &l : lights) {
-        ospRelease(l);
+  for (auto &l : lights) {
+    ospRelease(l);
     }
-    ospRelease(camera);
-    ospRelease(renderer);
-    ospRelease(fb);
-    ospRelease(world);
-}
+
+  ospRelease(camera);
+  ospRelease(renderer);
+  ospRelease(fb);
+  ospRelease(world);
+  }
 //}}}
 
 //{{{
@@ -67,18 +69,18 @@ std::string RenderOSPRay::name() {
 //}}}
 
 //{{{
-void RenderOSPRay::initialize (const int fb_width, const int fb_height)
-{
-    float aspect = static_cast<float>(fb_width) / fb_height;
-    ospSetParam(camera, "aspect", OSP_FLOAT, &aspect);
+void RenderOSPRay::initialize (const int fb_width, const int fb_height) {
 
-    if (fb) {
-        ospRelease(fb);
+  float aspect = static_cast<float>(fb_width) / fb_height;
+  ospSetParam (camera, "aspect", OSP_FLOAT, &aspect);
+
+  if (fb) {
+    ospRelease (fb);
     }
 
-    fb = ospNewFrameBuffer(fb_width, fb_height, OSP_FB_SRGBA, OSP_FB_COLOR | OSP_FB_ACCUM);
-    img.resize(fb_width * fb_height);
-}
+  fb = ospNewFrameBuffer (fb_width, fb_height, OSP_FB_SRGBA, OSP_FB_COLOR | OSP_FB_ACCUM);
+  img.resize (fb_width * fb_height);
+  }
 //}}}
 
 //{{{
@@ -278,42 +280,43 @@ RenderStats RenderOSPRay::render (const glm::vec3 &pos,
                                   const bool camera_changed,
                                   const bool need_readback) {
 
-    using namespace std::chrono;
-    if (camera_changed) {
-        ospSetParam(camera, "position", OSP_VEC3F, &pos.x);
-        ospSetParam(camera, "direction", OSP_VEC3F, &dir.x);
-        ospSetParam(camera, "up", OSP_VEC3F, &up.x);
-        ospSetParam(camera, "fovy", OSP_FLOAT, &fovy);
-        ospCommit(camera);
-        ospResetAccumulation(fb);
+  using namespace std::chrono;
+  if (camera_changed) {
+    ospSetParam (camera, "position", OSP_VEC3F, &pos.x);
+    ospSetParam (camera, "direction", OSP_VEC3F, &dir.x);
+    ospSetParam (camera, "up", OSP_VEC3F, &up.x);
+    ospSetParam (camera, "fovy", OSP_FLOAT, &fovy);
+    ospCommit (camera);
+    ospResetAccumulation (fb);
     }
 
-    RenderStats stats;
-    auto start = high_resolution_clock::now();
-    OSPFuture future = ospRenderFrame(fb, renderer, camera, world);
-    ospWait(future);
-    auto end = high_resolution_clock::now();
-    stats.render_time = duration_cast<nanoseconds>(end - start).count() * 1.0e-6;
+  RenderStats stats;
+  auto start = high_resolution_clock::now();
 
-    const uint32_t *mapped =
-        static_cast<const uint32_t *>(ospMapFrameBuffer(fb, OSP_FB_COLOR));
-    std::memcpy(img.data(), mapped, sizeof(uint32_t) * img.size());
-    ospUnmapFrameBuffer(mapped, fb);
+  OSPFuture future = ospRenderFrame (fb, renderer, camera, world);
+  ospWait (future);
 
-    return stats;
-}
+  auto end = high_resolution_clock::now();
+  stats.render_time = duration_cast<nanoseconds>(end - start).count() * 1.0e-6;
+
+  const uint32_t* mapped = static_cast<const uint32_t *>(ospMapFrameBuffer(fb, OSP_FB_COLOR));
+  std::memcpy (img.data(), mapped, sizeof(uint32_t) * img.size());
+  ospUnmapFrameBuffer (mapped, fb);
+
+  return stats;
+  }
 //}}}
 
 //{{{
 void RenderOSPRay::set_material_param (OSPMaterial &mat, const std::string &name, const float val) const {
 
-    const uint32_t handle = *reinterpret_cast<const uint32_t *>(&val);
-    if (IS_TEXTURED_PARAM(handle)) {
-        const std::string map_name = "map_" + name;
-        ospSetParam(mat, map_name.c_str(), OSP_TEXTURE, &textures[GET_TEXTURE_ID(handle)]);
-    } else {
-        ospSetParam(mat, name.c_str(), OSP_FLOAT, &val);
+  const uint32_t handle = *reinterpret_cast<const uint32_t *>(&val);
+  if (IS_TEXTURED_PARAM(handle)) {
+    const std::string map_name = "map_" + name;
+    ospSetParam (mat, map_name.c_str(), OSP_TEXTURE, &textures[GET_TEXTURE_ID(handle)]);
+    } 
+  else {
+    ospSetParam (mat, name.c_str(), OSP_FLOAT, &val);
     }
-}
-
+  }
 //}}}
