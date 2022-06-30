@@ -16,5 +16,33 @@ cd /mnt/c/projects/ChameleonRT/build
 
 ./cham embree cat/cat.obj
 
+cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..
+
+git clone https://github.com/ospray/ospray
+git clone https://github.com/ospray/ospray_studio
+
+# rkcommon
+git clone https://github.com/ospray/rkcommon
+cd rkcommon
+mkdir build
+cd build
+cmake ..
+# - testing off
+ccmake .. 
+make -j4
+sudo make install
+
+# openvdb
+sudo apt install -y libboost-iostreams-dev libtbb-dev libblosc-dev
+git clone https://github.com/AcademySoftwareFoundation/openvdb
+cd openvdb
+mkdir build
+cd build
+cmake ..
+make -j4
+sudo make install
+
+git clone https://github.com/AcademySoftwareFoundation/openexr
+
 gzip -d *.tar.gz
 tar -xvf *.tar
