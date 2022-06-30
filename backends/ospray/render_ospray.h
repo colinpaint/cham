@@ -7,7 +7,7 @@ struct RenderOSPRay : RenderBackend {
   RenderOSPRay();
   ~RenderOSPRay();
 
-  void initialize (const int fb_width, const int fb_height) override;
+  void initialize (const int frameBuffer_width, const int frameBuffer_height) override;
 
   std::string name() override;
   void set_scene (const Scene &scene) override;
@@ -22,7 +22,7 @@ struct RenderOSPRay : RenderBackend {
   // vars
   OSPCamera camera;
   OSPRenderer renderer;
-  OSPFrameBuffer fb;
+  OSPFrameBuffer frameBuffer;
   OSPWorld world;
 
   Scene scene;

@@ -17,7 +17,7 @@
 
 //{{{
 RenderOSPRay::RenderOSPRay()
-   : fb(0) {
+   : frameBuffer(0) {
 
   const char* argv[] = {"render_ospray_backend"};
 
@@ -31,8 +31,9 @@ RenderOSPRay::RenderOSPRay()
 
   // Apply a y-flip to the image to match the other backends which render DirectX/Vulkan image coordinate system
   const glm::vec2 img_start (0.f, 1.f);
-  const glm::vec2 img_end (1.f, 0.f);
   ospSetParam (camera, "imageStart", OSP_VEC2F, &img_start.x);
+
+  const glm::vec2 img_end (1.f, 0.f);
   ospSetParam (camera, "imageEnd", OSP_VEC2F, &img_end.x);
 
   renderer = ospNewRenderer ("pathtracer");
@@ -55,22 +56,22 @@ RenderOSPRay::~RenderOSPRay() {
 
   ospRelease (camera);
   ospRelease (renderer);
-  ospRelease (fb);
+  ospRelease (frameBuffer);
   ospRelease (world);
   }
 //}}}
 
 //{{{
-void RenderOSPRay::initialize (const int fb_width, const int fb_height) {
+void RenderOSPRay::initialize (const int frameBuffer_width, const int frameBuffer_height) {
 
-  float aspect = static_cast<float>(fb_width) / fb_height;
+  float aspect = static_cast<float>(frameBuffer_width) / frameBuffer_height;
   ospSetParam (camera, "aspect", OSP_FLOAT, &aspect);
 
-  if (fb)
-    ospRelease (fb);
+  if (frameBuffer)
+    ospRelease (frameBuffer);
 
-  fb = ospNewFrameBuffer (fb_width, fb_height, OSP_FB_SRGBA, OSP_FB_COLOR | OSP_FB_ACCUM);
-  img.resize (fb_width * fb_height);
+  frameBuffer = ospNewFrameBuffer (frameBuffer_width, frameBuffer_height, OSP_FB_SRGBA, OSP_FB_COLOR | OSP_FB_ACCUM);
+  img.resize (frameBuffer_width * frameBuffer_height);
   }
 //}}}
 
@@ -82,7 +83,7 @@ std::string RenderOSPRay::name() {
 //{{{
 void RenderOSPRay::set_scene (const Scene &in_scene) {
 
-  ospResetAccumulation (fb);
+  ospResetAccumulation (frameBuffer);
 
   // TODO: should take scene as shared ptr
   scene = in_scene;
@@ -169,7 +170,7 @@ void RenderOSPRay::set_scene (const Scene &in_scene) {
       OSPData verts_data = ospNewSharedData (geom.vertices.data(), OSP_VEC3F, geom.vertices.size());
       OSPData indices_data = ospNewSharedData (geom.indices.data(), OSP_VEC3UI, geom.indices.size());
 
-      OSPGeometry g = ospNewGeometry("mesh");
+      OSPGeometry g = ospNewGeometry ("mesh");
       ospSetParam (g, "vertex.position", OSP_DATA, &verts_data);
       ospSetParam (g, "index", OSP_DATA, &indices_data);
 
@@ -288,21 +289,21 @@ RenderStats RenderOSPRay::render (const glm::vec3 &pos,
     ospSetParam (camera, "up", OSP_VEC3F, &up.x);
     ospSetParam (camera, "fovy", OSP_FLOAT, &fovy);
     ospCommit (camera);
-    ospResetAccumulation (fb);
+    ospResetAccumulation (frameBuffer);
     }
 
   RenderStats stats;
   auto start = std::chrono::high_resolution_clock::now();
 
-  OSPFuture future = ospRenderFrame (fb, renderer, camera, world);
+  OSPFuture future = ospRenderFrame (frameBuffer, renderer, camera, world);
   ospWait (future);
 
   auto end = std::chrono::high_resolution_clock::now();
   stats.render_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() * 1.0e-6;
 
-  const uint32_t* mapped = static_cast<const uint32_t *>(ospMapFrameBuffer(fb, OSP_FB_COLOR));
+  const uint32_t* mapped = static_cast<const uint32_t *>(ospMapFrameBuffer (frameBuffer, OSP_FB_COLOR));
   std::memcpy (img.data(), mapped, sizeof(uint32_t) * img.size());
-  ospUnmapFrameBuffer (mapped, fb);
+  ospUnmapFrameBuffer (mapped, frameBuffer);
 
   return stats;
   }
