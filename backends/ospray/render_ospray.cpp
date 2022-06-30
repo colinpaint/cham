@@ -1,3 +1,4 @@
+// render_ospray.cpp
 //{{{  includes
 #include "render_ospray.h"
 
@@ -15,7 +16,7 @@
 //}}}
 
 //{{{
-RenderOSPRay::RenderOSPRay() 
+RenderOSPRay::RenderOSPRay()
    : fb(0) {
 
   const char* argv[] = {"render_ospray_backend"};
@@ -60,18 +61,12 @@ RenderOSPRay::~RenderOSPRay() {
 //}}}
 
 //{{{
-std::string RenderOSPRay::name() {
-  return "OSPRay";
-  }
-//}}}
-
-//{{{
 void RenderOSPRay::initialize (const int fb_width, const int fb_height) {
 
   float aspect = static_cast<float>(fb_width) / fb_height;
   ospSetParam (camera, "aspect", OSP_FLOAT, &aspect);
 
-  if (fb) 
+  if (fb)
     ospRelease (fb);
 
   fb = ospNewFrameBuffer (fb_width, fb_height, OSP_FB_SRGBA, OSP_FB_COLOR | OSP_FB_ACCUM);
@@ -80,25 +75,30 @@ void RenderOSPRay::initialize (const int fb_width, const int fb_height) {
 //}}}
 
 //{{{
+std::string RenderOSPRay::name() {
+  return "OSPRay";
+  }
+//}}}
+//{{{
 void RenderOSPRay::set_scene (const Scene &in_scene) {
 
-  ospResetAccumulation(fb);
+  ospResetAccumulation (fb);
 
   // TODO: should take scene as shared ptr
   scene = in_scene;
-
   //{{{  Linearize any sRGB textures beforehand, no fancy sRGB texture interpolation support in hardware
   tbb::parallel_for (size_t(0), scene.textures.size(), [&](size_t i) {
     auto &img = scene.textures[i];
     if (img.color_space == LINEAR)
       return;
+
     img.color_space = LINEAR;
     const int convert_channels = std::min(3, img.channels);
     tbb::parallel_for(size_t(0), size_t(img.width) * img.height, [&](size_t px) {
       for (int c = 0; c < convert_channels; ++c) {
         float x = img.img[px * img.channels + c] / 255.f;
         x = srgb_to_linear(x);
-        img.img[px * img.channels + c] = glm::clamp(x * 255.f, 0.f, 255.f);
+        img.img[px * img.channels + c] = glm::clamp (x * 255.f, 0.f, 255.f);
         }
       });
     });
@@ -110,7 +110,7 @@ void RenderOSPRay::set_scene (const Scene &in_scene) {
 
   textures.clear();
 
-  for (const auto &tex : scene.textures) {
+  for (const auto& tex : scene.textures) {
     const OSPDataType data_type = tex.channels == 3 ? OSP_VEC3UC : OSP_VEC4UC;
     const int format = tex.channels == 3 ? OSP_TEXTURE_RGB8 : OSP_TEXTURE_RGBA8;
     const int filter = OSP_TEXTURE_FILTER_BILINEAR;
@@ -126,12 +126,12 @@ void RenderOSPRay::set_scene (const Scene &in_scene) {
   //}}}
   //{{{  materials
   for (auto &m : materials)
-    ospRelease(m);
+    ospRelease (m);
 
   materials.clear();
 
-  for (const auto &mat : scene.materials) {
-    OSPMaterial m = ospNewMaterial("pathtracer", "principled");
+  for (const auto& mat : scene.materials) {
+    OSPMaterial m = ospNewMaterial ("pathtracer", "principled");
     const int tex_handle = *reinterpret_cast<const int *>(&mat.base_color.x);
     if (IS_TEXTURED_PARAM (tex_handle))
       ospSetParam (m, "map_baseColor", OSP_TEXTURE, &textures[GET_TEXTURE_ID(tex_handle)]);
@@ -186,7 +186,7 @@ void RenderOSPRay::set_scene (const Scene &in_scene) {
     }
   //}}}
   //{{{  instances
-  for (auto &i : instances) 
+  for (auto &i : instances)
     ospRelease (i);
 
   instances.clear();
@@ -216,7 +216,7 @@ void RenderOSPRay::set_scene (const Scene &in_scene) {
     instances.push_back (osp_instance);
 
      // Ref-counted internally by OSPRay, we no longer need these handles
-    for (auto &gm : geom_models) 
+    for (auto &gm : geom_models)
       ospRelease (gm);
 
     ospRelease (group);
@@ -247,7 +247,7 @@ void RenderOSPRay::set_scene (const Scene &in_scene) {
     glm::vec3 edgey = light.v_y * light.height;
     // Make sure the light is oriented facing the direction we want. OSPRay determines this
     // by the cross produce of the two edges
-    if (glm::dot (glm::cross(edgex, edgey), glm::vec3(light.normal)) < 0.f) 
+    if (glm::dot (glm::cross(edgex, edgey), glm::vec3(light.normal)) < 0.f)
       std::swap (edgex, edgey);
     ospSetParam (l, "position", OSP_VEC3F, &light.position);
     ospSetParam (l, "edge1", OSP_VEC3F, &edgex.x);
@@ -308,6 +308,7 @@ RenderStats RenderOSPRay::render (const glm::vec3 &pos,
   }
 //}}}
 
+// private
 //{{{
 void RenderOSPRay::set_material_param (OSPMaterial &mat, const std::string &name, const float val) const {
 
@@ -316,8 +317,7 @@ void RenderOSPRay::set_material_param (OSPMaterial &mat, const std::string &name
     const std::string map_name = "map_" + name;
     ospSetParam (mat, map_name.c_str(), OSP_TEXTURE, &textures[GET_TEXTURE_ID(handle)]);
     }
-  else {
+  else
     ospSetParam (mat, name.c_str(), OSP_FLOAT, &val);
-    }
   }
 //}}}
