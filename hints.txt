@@ -4,6 +4,10 @@ echo $LD_LIBRARY_PATH
 
 cmake .. -DENABLE_OSPRAY=ON -Dospray_DIR=/mnt/c/projects/osprayLinuxRelease/lib/cmake/ospray-2.10.0
 
+/mnt/c/projects/myCham/ospray/lib/cmake/ospray-2.10.0
+/mnt/c/projects/myCham/ispc/ispc
+/mnt/c/projects/myCham/embree/lib/cmake/embree-3.13.4
+
 cd /mnt/c/projects/ChameleonRT/build
 
 /mnt/c/projects/ispcLinuxRelease/bin/ispc

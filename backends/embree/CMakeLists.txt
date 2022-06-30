@@ -1,4 +1,4 @@
-option (ENABLE_EMBREE "Build the Embree + TBB + ISPC rendering backend. Requires Embree, TBB and ISPC" OFF)
+option (ENABLE_EMBREE "Build Embree" OFF)
 
 if (NOT ENABLE_EMBREE)
   return()
@@ -10,6 +10,7 @@ find_package (TBB REQUIRED)
 include (cmake/ISPC.cmake)
 
 set (ISPC_COMPILE_DEFNS "-O3;--opt=fast-math")
+
 if (REPORT_RAY_STATS)
   set (ISPC_COMPILE_DEFNS "${ISPC_COMPILE_DEFNS};-DREPORT_RAY_STATS=1")
 endif()
@@ -21,12 +22,9 @@ add_ispc_library (ispc_kernels render_embree.ispc
 		  COMPILE_DEFINITIONS
 		  ${ISPC_COMPILE_DEFNS})
 
-add_library (crt_embree MODULE
-	     render_embree_plugin.cpp
-	     render_embree.cpp
-	     embree_utils.cpp)
+add_library (crt_embree MODULE render_embree_plugin.cpp render_embree.cpp embree_utils.cpp)
 
-set_target_properties(crt_embree PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
+set_target_properties (crt_embree PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED ON)
 
 if (REPORT_RAY_STATS)
   target_compile_options (crt_embree PUBLIC -DREPORT_RAY_STATS=1)
