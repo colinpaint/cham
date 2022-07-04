@@ -27,12 +27,10 @@ RenderOSPRay::RenderOSPRay()
     throw std::runtime_error ("Failed to init OSPRay");
     }
 
+  // new camera - apply y-flip to match other backends which render DirectX/Vulkan image coordinate system
   camera = ospNewCamera ("perspective");
-
-  // Apply a y-flip to the image to match the other backends which render DirectX/Vulkan image coordinate system
   const glm::vec2 img_start (0.f, 1.f);
   ospSetParam (camera, "imageStart", OSP_VEC2F, &img_start.x);
-
   const glm::vec2 img_end (1.f, 0.f);
   ospSetParam (camera, "imageEnd", OSP_VEC2F, &img_end.x);
 
@@ -81,7 +79,7 @@ std::string RenderOSPRay::name() {
   }
 //}}}
 //{{{
-void RenderOSPRay::set_scene (const Scene &in_scene) {
+void RenderOSPRay::set_scene (const Scene& in_scene) {
 
   ospResetAccumulation (frameBuffer);
 
@@ -108,7 +106,6 @@ void RenderOSPRay::set_scene (const Scene &in_scene) {
   //{{{  textures
   for (auto &t : textures)
     ospRelease (t);
-
   textures.clear();
 
   for (const auto& tex : scene.textures) {
@@ -128,7 +125,6 @@ void RenderOSPRay::set_scene (const Scene &in_scene) {
   //{{{  materials
   for (auto &m : materials)
     ospRelease (m);
-
   materials.clear();
 
   for (const auto& mat : scene.materials) {
@@ -189,7 +185,6 @@ void RenderOSPRay::set_scene (const Scene &in_scene) {
   //{{{  instances
   for (auto &i : instances)
     ospRelease (i);
-
   instances.clear();
 
   for (const auto &inst : scene.instances) {
@@ -197,10 +192,10 @@ void RenderOSPRay::set_scene (const Scene &in_scene) {
     std::vector<OSPGeometricModel> geom_models;
     const auto &pm = scene.parameterized_meshes[inst.parameterized_mesh_id];
     for (size_t i = 0; i < meshes[inst.parameterized_mesh_id].size(); ++i) {
-       OSPGeometricModel gm = ospNewGeometricModel(meshes[inst.parameterized_mesh_id][i]);
-       ospSetParam(gm, "material", OSP_UINT, &pm.material_ids[i]);
-       ospCommit (gm);
-       geom_models.push_back (gm);
+      OSPGeometricModel gm = ospNewGeometricModel(meshes[inst.parameterized_mesh_id][i]);
+      ospSetParam(gm, "material", OSP_UINT, &pm.material_ids[i]);
+      ospCommit (gm);
+      geom_models.push_back (gm);
       }
 
     OSPGroup group = ospNewGroup();
@@ -226,14 +221,14 @@ void RenderOSPRay::set_scene (const Scene &in_scene) {
   // Ref-counted internally by OSPRay, we no longer need these handles
   for (auto &m : meshes)
     for (auto &g : m)
-      ospRelease(g);
+      ospRelease (g);
   //}}}
-  //{{{  lights
+
+  // lights
   for (auto &l : lights)
     ospRelease(l);
-
   lights.clear();
-
+  //{{{  quad light
   for (const auto &light : scene.lights) {
     OSPLight l = ospNewLight ("quad");
 
@@ -256,7 +251,8 @@ void RenderOSPRay::set_scene (const Scene &in_scene) {
     ospCommit (l);
     lights.push_back (l);
     }
-
+  //}}}
+  //{{{  ambient light
   {
     OSPLight ambient = ospNewLight ("ambient");
     float ambient_intensity = 0.2f;

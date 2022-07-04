@@ -2,24 +2,34 @@ LD_LIBRARY_PATH=.
 export LD_LIBRARY_PATH
 echo $LD_LIBRARY_PATH
 
+
+cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..
 cmake .. -DENABLE_OSPRAY=ON -Dospray_DIR=/mnt/c/projects/osprayLinuxRelease/lib/cmake/ospray-2.10.0
 
 /mnt/c/projects/myCham/ospray/lib/cmake/ospray-2.10.0
 /mnt/c/projects/myCham/ispc/ispc
 /mnt/c/projects/myCham/embree/lib/cmake/embree-3.13.4
 
-cd /mnt/c/projects/ChameleonRT/build
+/mnt/c/projects/ChameleonRT/build
 
 /mnt/c/projects/ispcLinuxRelease/bin/ispc
 
 /mnt/c/projects/embreeLinuxRelease/lib/cmake
 
-./cham embree cat/cat.obj
+./cham embree ../cat/cat.obj
+./cham embree ../crown/crown.obj
 
-cmake -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang ..
 
-git clone https://github.com/ospray/ospray
+# ospray_studio
 git clone https://github.com/ospray/ospray_studio
+
+# ospray
+git clone https://github.com/ospray/ospray
+mkdir build
+cd build
+cmake ../scripts/superbuild
+cmake --build .
+
 
 # rkcommon
 git clone https://github.com/ospray/rkcommon
@@ -28,7 +38,7 @@ mkdir build
 cd build
 cmake ..
 # - testing off
-ccmake .. 
+ccmake ..
 make -j4
 sudo make install
 

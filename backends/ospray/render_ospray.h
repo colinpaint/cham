@@ -12,12 +12,8 @@ struct RenderOSPRay : RenderBackend {
   std::string name() override;
   void set_scene (const Scene &scene) override;
 
-  RenderStats render (const glm::vec3 &pos,
-                      const glm::vec3 &dir,
-                      const glm::vec3 &up,
-                      const float fovy,
-                      const bool camera_changed,
-                      const bool need_readback) override;
+  RenderStats render (const glm::vec3 &pos, const glm::vec3 &dir, const glm::vec3 &up,
+                      const float fovy, const bool camera_changed, const bool need_readback) override;
 
   // vars
   OSPCamera camera;
